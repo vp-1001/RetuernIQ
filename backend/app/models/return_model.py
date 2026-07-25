@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Any
-
+from sqlalchemy.orm import relationship
 from sqlalchemy import DateTime, Integer, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -79,4 +79,9 @@ class ReturnRequest(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
+    )
+    evidence = relationship(
+    "Evidence",
+    back_populates="return_request",
+    cascade="all, delete-orphan",
     )

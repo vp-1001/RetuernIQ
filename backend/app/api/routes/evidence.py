@@ -2,15 +2,7 @@ from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    File,
-    HTTPException,
-    Request,
-    UploadFile,
-    status,
-)
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from PIL import Image, UnidentifiedImageError
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -77,12 +69,7 @@ def verify_image(
     return width, height, image_format
 
 
-def serialize_evidence(
-    evidence: Evidence,
-    request: Request,
-) -> dict:
-    base_url = str(request.base_url).rstrip("/")
-
+def serialize_evidence(evidence: Evidence) -> dict:
     return {
         "id": evidence.id,
         "return_id": evidence.return_id,
@@ -90,9 +77,6 @@ def serialize_evidence(
         "stored_filename": evidence.filename,
         "content_type": evidence.content_type,
         "file_size": evidence.file_size,
-        "image_url": (
-            f"{base_url}/uploads/evidence/{evidence.filename}"
-        ),
         "created_at": evidence.created_at,
     }
 
@@ -103,7 +87,6 @@ def serialize_evidence(
 )
 async def upload_evidence(
     return_id: str,
-    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(
@@ -197,7 +180,7 @@ async def upload_evidence(
     return {
         "message": "Evidence uploaded successfully.",
         "evidence": {
-            **serialize_evidence(evidence, request),
+            **serialize_evidence(evidence),
             "width": width,
             "height": height,
             "image_format": image_format,
@@ -208,7 +191,6 @@ async def upload_evidence(
 @router.get("/return/{return_id}")
 def list_evidence_for_return(
     return_id: str,
-    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -233,6 +215,46 @@ def list_evidence_for_return(
     ).all()
 
     return [
-        serialize_evidence(evidence, request)
+        serialize_evidence(evidence)
         for evidence in evidence_items
     ]
+
+@router.delete("/{evidence_id}")
+def delete_evidence(
+    evidence_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            "admin",
+            "merchant",
+        )
+    ),
+):
+    evidence = db.get(Evidence, evidence_id)
+
+    if evidence is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Evidence not found.",
+        )
+
+    image_path = Path(evidence.file_path)
+
+    try:
+        if image_path.exists():
+            image_path.unlink()
+
+        db.delete(evidence)
+        db.commit()
+
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to delete evidence.",
+        )
+
+    return {
+        "message": "Evidence deleted successfully."
+    }
