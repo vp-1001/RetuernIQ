@@ -1,110 +1,40 @@
-from io import BytesIO
-from pathlib import Path
-from uuid import uuid4
+import uuid
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    File,
-    HTTPException,
-    Request,
-    UploadFile,
-    status,
-)
-from PIL import Image, UnidentifiedImageError
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import require_roles
-from app.core.storage import EVIDENCE_DIR
 from app.database.session import get_db
-from app.models.evidence_model import Evidence
 from app.models.return_model import ReturnRequest
 from app.models.user_model import User
+from app.schemas.return_schema import ReturnAssessment, ReturnCreate
+from app.services.risk_engine import assess_return
 
 
 router = APIRouter(
-    prefix="/evidence",
-    tags=["Evidence"],
+    prefix="/returns",
+    tags=["Returns"],
 )
 
-ALLOWED_CONTENT_TYPES = {
-    "image/jpeg": ".jpg",
-    "image/png": ".png",
-    "image/webp": ".webp",
-}
 
-MAX_FILE_SIZE = 10 * 1024 * 1024
+def build_assessment_response(
+    return_request: ReturnRequest,
+) -> ReturnAssessment:
+    assessment_data = dict(return_request.assessment_payload)
+    assessment_data["return_id"] = return_request.id
 
-
-def verify_image(
-    file_contents: bytes,
-    expected_content_type: str,
-) -> tuple[int, int, str]:
-    try:
-        with Image.open(BytesIO(file_contents)) as image:
-            image.verify()
-
-        with Image.open(BytesIO(file_contents)) as image:
-            width, height = image.size
-            image_format = image.format
-
-    except (UnidentifiedImageError, OSError, ValueError):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The uploaded file is not a valid image.",
-        )
-
-    expected_formats = {
-        "image/jpeg": {"JPEG"},
-        "image/png": {"PNG"},
-        "image/webp": {"WEBP"},
-    }
-
-    if image_format not in expected_formats[expected_content_type]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The file content does not match its declared image type.",
-        )
-
-    if width <= 0 or height <= 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The image dimensions are invalid.",
-        )
-
-    return width, height, image_format
-
-
-def serialize_evidence(
-    evidence: Evidence,
-    request: Request,
-) -> dict:
-    base_url = str(request.base_url).rstrip("/")
-
-    return {
-        "id": evidence.id,
-        "return_id": evidence.return_id,
-        "original_filename": evidence.original_filename,
-        "stored_filename": evidence.filename,
-        "content_type": evidence.content_type,
-        "file_size": evidence.file_size,
-        "image_url": (
-            f"{base_url}/uploads/evidence/{evidence.filename}"
-        ),
-        "created_at": evidence.created_at,
-    }
+    return ReturnAssessment.model_validate(assessment_data)
 
 
 @router.post(
-    "/{return_id}",
+    "",
+    response_model=ReturnAssessment,
     status_code=status.HTTP_201_CREATED,
 )
-async def upload_evidence(
-    return_id: str,
-    request: Request,
-    file: UploadFile = File(...),
+def create_return(
+    return_data: ReturnCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -112,103 +42,68 @@ async def upload_evidence(
             "merchant",
         )
     ),
-) -> dict:
-    return_request = db.get(ReturnRequest, return_id)
-
-    if return_request is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Return request not found.",
+) -> ReturnAssessment:
+    existing_return = db.scalar(
+        select(ReturnRequest).where(
+            ReturnRequest.order_id == return_data.order_id
         )
-
-    if not file.filename:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The uploaded file must have a filename.",
-        )
-
-    if file.content_type not in ALLOWED_CONTENT_TYPES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only JPEG, PNG, and WebP images are supported.",
-        )
-
-    file_contents = await file.read()
-
-    if not file_contents:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The uploaded file is empty.",
-        )
-
-    if len(file_contents) > MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="The uploaded image exceeds the 10 MB limit.",
-        )
-
-    width, height, image_format = verify_image(
-        file_contents=file_contents,
-        expected_content_type=file.content_type,
     )
 
-    extension = ALLOWED_CONTENT_TYPES[file.content_type]
-    stored_filename = f"{uuid4()}{extension}"
-    destination = EVIDENCE_DIR / stored_filename
-
-    try:
-        destination.write_bytes(file_contents)
-
-        evidence = Evidence(
-            return_id=return_id,
-            filename=stored_filename,
-            original_filename=Path(file.filename).name,
-            file_path=str(destination),
-            file_size=len(file_contents),
-            content_type=file.content_type,
+    if existing_return is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A return request already exists for this order.",
         )
 
-        db.add(evidence)
+    assessment = assess_return(return_data)
+    return_id = str(uuid.uuid4())
+
+    request_payload = return_data.model_dump(mode="json")
+    assessment_payload = assessment.model_dump(mode="json")
+    assessment_payload["return_id"] = return_id
+
+    return_request = ReturnRequest(
+        id=return_id,
+        order_id=return_data.order_id,
+        customer_id=return_data.customer_id,
+        product_name=return_data.product_name,
+        risk_score=assessment.risk_score,
+        risk_level=assessment.risk_level.value,
+        recommendation=assessment.recommendation.value,
+        status="pending",
+        request_payload=request_payload,
+        assessment_payload=assessment_payload,
+    )
+
+    try:
+        db.add(return_request)
         db.commit()
-        db.refresh(evidence)
+        db.refresh(return_request)
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A return request already exists for this order.",
+        )
 
     except SQLAlchemyError:
         db.rollback()
 
-        if destination.exists():
-            destination.unlink()
-
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Unable to save evidence metadata.",
+            detail="Unable to create the return request.",
         )
 
-    except OSError:
-        db.rollback()
-
-        if destination.exists():
-            destination.unlink()
-
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Unable to store the uploaded image.",
-        )
-
-    return {
-        "message": "Evidence uploaded successfully.",
-        "evidence": {
-            **serialize_evidence(evidence, request),
-            "width": width,
-            "height": height,
-            "image_format": image_format,
-        },
-    }
+    return build_assessment_response(return_request)
 
 
-@router.get("/return/{return_id}")
-def list_evidence_for_return(
-    return_id: str,
-    request: Request,
+@router.get(
+    "",
+    response_model=list[ReturnAssessment],
+)
+def list_returns(
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -217,7 +112,34 @@ def list_evidence_for_return(
             "reviewer",
         )
     ),
-) -> list[dict]:
+) -> list[ReturnAssessment]:
+    return_requests = db.scalars(
+        select(ReturnRequest).order_by(
+            ReturnRequest.created_at.desc()
+        )
+    ).all()
+
+    return [
+        build_assessment_response(return_request)
+        for return_request in return_requests
+    ]
+
+
+@router.get(
+    "/{return_id}",
+    response_model=ReturnAssessment,
+)
+def get_return(
+    return_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            "admin",
+            "merchant",
+            "reviewer",
+        )
+    ),
+) -> ReturnAssessment:
     return_request = db.get(ReturnRequest, return_id)
 
     if return_request is None:
@@ -226,13 +148,4 @@ def list_evidence_for_return(
             detail="Return request not found.",
         )
 
-    evidence_items = db.scalars(
-        select(Evidence)
-        .where(Evidence.return_id == return_id)
-        .order_by(Evidence.created_at.desc())
-    ).all()
-
-    return [
-        serialize_evidence(evidence, request)
-        for evidence in evidence_items
-    ]
+    return build_assessment_response(return_request)
