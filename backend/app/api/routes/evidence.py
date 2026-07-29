@@ -2,18 +2,27 @@ from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
 from PIL import Image, UnidentifiedImageError
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import require_roles
-from app.core.storage import EVIDENCE_DIR
-from app.database.session import get_db
-from app.models.evidence_model import Evidence
-from app.models.return_model import ReturnRequest
-from app.models.user_model import User
+from backend.app.api.dependencies import require_roles
+from backend.app.core.storage import EVIDENCE_DIR
+from backend.app.database.session import get_db
+from backend.app.models.evidence_model import Evidence
+from backend.app.models.return_model import ReturnRequest
+from backend.app.models.user_model import User
+from backend.app.services.image_analysis_service import analyze_image
 
 
 router = APIRouter(
@@ -69,7 +78,12 @@ def verify_image(
     return width, height, image_format
 
 
-def serialize_evidence(evidence: Evidence) -> dict:
+def serialize_evidence(
+    evidence: Evidence,
+    request: Request,
+) -> dict:
+    base_url = str(request.base_url).rstrip("/")
+
     return {
         "id": evidence.id,
         "return_id": evidence.return_id,
@@ -77,6 +91,18 @@ def serialize_evidence(evidence: Evidence) -> dict:
         "stored_filename": evidence.filename,
         "content_type": evidence.content_type,
         "file_size": evidence.file_size,
+        "image_url": (
+            f"{base_url}/uploads/evidence/{evidence.filename}"
+        ),
+        "image_width": evidence.image_width,
+        "image_height": evidence.image_height,
+        "brightness_score": evidence.brightness_score,
+        "blur_score": evidence.blur_score,
+        "dominant_color": {
+            "red": evidence.dominant_red,
+            "green": evidence.dominant_green,
+            "blue": evidence.dominant_blue,
+        },
         "created_at": evidence.created_at,
     }
 
@@ -87,6 +113,7 @@ def serialize_evidence(evidence: Evidence) -> dict:
 )
 async def upload_evidence(
     return_id: str,
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(
@@ -130,10 +157,12 @@ async def upload_evidence(
             detail="The uploaded image exceeds the 10 MB limit.",
         )
 
-    width, height, image_format = verify_image(
+    _, _, image_format = verify_image(
         file_contents=file_contents,
         expected_content_type=file.content_type,
     )
+
+    analysis = analyze_image(file_contents)
 
     extension = ALLOWED_CONTENT_TYPES[file.content_type]
     stored_filename = f"{uuid4()}{extension}"
@@ -149,6 +178,13 @@ async def upload_evidence(
             file_path=str(destination),
             file_size=len(file_contents),
             content_type=file.content_type,
+            image_width=analysis["image_width"],
+            image_height=analysis["image_height"],
+            brightness_score=analysis["brightness_score"],
+            blur_score=analysis["blur_score"],
+            dominant_red=analysis["dominant_red"],
+            dominant_green=analysis["dominant_green"],
+            dominant_blue=analysis["dominant_blue"],
         )
 
         db.add(evidence)
@@ -178,19 +214,16 @@ async def upload_evidence(
         )
 
     return {
-        "message": "Evidence uploaded successfully.",
-        "evidence": {
-            **serialize_evidence(evidence),
-            "width": width,
-            "height": height,
-            "image_format": image_format,
-        },
+        "message": "Evidence uploaded and analyzed successfully.",
+        "image_format": image_format,
+        "evidence": serialize_evidence(evidence, request),
     }
 
 
 @router.get("/return/{return_id}")
 def list_evidence_for_return(
     return_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -215,9 +248,10 @@ def list_evidence_for_return(
     ).all()
 
     return [
-        serialize_evidence(evidence)
+        serialize_evidence(evidence, request)
         for evidence in evidence_items
     ]
+
 
 @router.delete("/{evidence_id}")
 def delete_evidence(
@@ -229,7 +263,7 @@ def delete_evidence(
             "merchant",
         )
     ),
-):
+) -> dict:
     evidence = db.get(Evidence, evidence_id)
 
     if evidence is None:
@@ -241,11 +275,11 @@ def delete_evidence(
     image_path = Path(evidence.file_path)
 
     try:
-        if image_path.exists():
-            image_path.unlink()
-
         db.delete(evidence)
         db.commit()
+
+        if image_path.exists():
+            image_path.unlink()
 
     except SQLAlchemyError:
         db.rollback()
@@ -255,6 +289,12 @@ def delete_evidence(
             detail="Unable to delete evidence.",
         )
 
+    except OSError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Evidence metadata was deleted, but the image file could not be removed.",
+        )
+
     return {
-        "message": "Evidence deleted successfully."
+        "message": "Evidence deleted successfully.",
     }

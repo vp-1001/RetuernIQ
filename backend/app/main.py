@@ -1,14 +1,15 @@
-﻿from fastapi import FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
-from app import models
-from app.api.routes.auth import router as auth_router
-from app.api.routes.evidence import router as evidence_router
-from app.api.routes.health import router as health_router
-from app.api.routes.returns import router as returns_router
-from app.core.storage import create_storage_directories
-from app.database.base import Base
-from app.database.session import engine
+from backend.app import models
+from backend.app.api.routes.auth import router as auth_router
+from backend.app.api.routes.evidence import router as evidence_router
+from backend.app.api.routes.health import router as health_router
+from backend.app.api.routes.returns import router as returns_router
+from backend.app.core.storage import UPLOADS_DIR, create_storage_directories
+from backend.app.database.base import Base
+from backend.app.database.session import engine
 
 
 Base.metadata.create_all(bind=engine)
@@ -34,10 +35,32 @@ app.add_middleware(
 )
 
 
-app.include_router(health_router, prefix="/api/v1")
-app.include_router(auth_router, prefix="/api/v1")
-app.include_router(returns_router, prefix="/api/v1")
-app.include_router(evidence_router, prefix="/api/v1")
+app.mount(
+    "/uploads",
+    StaticFiles(directory=str(UPLOADS_DIR)),
+    name="uploads",
+)
+
+
+app.include_router(
+    health_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    auth_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    returns_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    evidence_router,
+    prefix="/api/v1",
+)
 
 
 @app.get("/")

@@ -3,7 +3,7 @@ from typing import Any
 
 from jose import JWTError, jwt
 
-from app.core.config import settings
+from backend.app.core.config import settings
 
 
 def create_access_token(

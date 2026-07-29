@@ -4,13 +4,13 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user
-from app.database.session import get_db
-from app.models.user_model import User
-from app.schemas.auth_schema import TokenResponse
-from app.schemas.user_schema import UserCreate, UserResponse
-from app.services.auth_service import hash_password, verify_password
-from app.services.jwt_service import create_access_token
+from backend.app.api.dependencies import get_current_user
+from backend.app.database.session import get_db
+from backend.app.models.user_model import User
+from backend.app.schemas.auth_schema import TokenResponse
+from backend.app.schemas.user_schema import UserCreate, UserResponse
+from backend.app.services.auth_service import hash_password, verify_password
+from backend.app.services.jwt_service import create_access_token
 
 
 router = APIRouter(

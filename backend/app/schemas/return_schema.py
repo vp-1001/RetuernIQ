@@ -1,6 +1,6 @@
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ProductCategory(str, Enum):
@@ -47,6 +47,54 @@ class ReturnCreate(BaseModel):
 
     customer_history: CustomerHistory
     financial_data: FinancialData
+
+    @field_validator(
+        "merchant_id",
+        "external_return_id",
+        "order_id",
+        "customer_id",
+        "product_name",
+        "return_reason",
+        mode="before",
+    )
+    @classmethod
+    def clean_text_fields(cls, value):
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    @field_validator("product_category", mode="before")
+    @classmethod
+    def normalize_product_category(cls, value):
+        if isinstance(value, ProductCategory):
+            return value
+
+        if not isinstance(value, str):
+            return value
+
+        normalized_value = value.strip().lower()
+
+        aliases = {
+            "electronic": "electronics",
+            "electronics": "electronics",
+            "fashion": "fashion",
+            "clothing": "fashion",
+            "clothes": "fashion",
+            "footwear": "footwear",
+            "shoe": "footwear",
+            "shoes": "footwear",
+            "beauty": "beauty",
+            "cosmetics": "beauty",
+            "home": "home",
+            "home appliance": "home",
+            "home appliances": "home",
+            "other": "other",
+            "others": "other",
+        }
+
+        return aliases.get(normalized_value, normalized_value)
+
+
 class RiskLevel(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
@@ -76,6 +124,8 @@ class FinancialImpact(BaseModel):
 
 
 class ReturnAssessment(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     return_id: str
     risk_score: int
     risk_level: RiskLevel

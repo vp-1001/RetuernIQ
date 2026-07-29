@@ -11,7 +11,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 
-from app.database.base import Base
+from backend.app.database.base import Base
 
 
 class Evidence(Base):

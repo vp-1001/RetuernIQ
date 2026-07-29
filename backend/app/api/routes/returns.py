@@ -5,12 +5,12 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import require_roles
-from app.database.session import get_db
-from app.models.return_model import ReturnRequest
-from app.models.user_model import User
-from app.schemas.return_schema import ReturnAssessment, ReturnCreate
-from app.services.risk_engine import assess_return
+from backend.app.api.dependencies import require_roles
+from backend.app.database.session import get_db
+from backend.app.models.return_model import ReturnRequest
+from backend.app.models.user_model import User
+from backend.app.schemas.return_schema import ReturnAssessment, ReturnCreate
+from backend.app.services.risk_engine import assess_return
 
 
 router = APIRouter(

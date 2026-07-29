@@ -1,4 +1,4 @@
-from app.schemas.return_schema import (
+from backend.app.schemas.return_schema import (
     FinancialImpact,
     ReturnCreate
 )
@@ -26,7 +26,7 @@ def calculate_financial_impact(data: ReturnCreate) -> FinancialImpact:
         operational_cost=round(operational_cost, 2),
         recoverable_value=round(financial.recoverable_resale_value, 2)
     )
-from app.schemas.return_schema import RiskLevel
+from backend.app.schemas.return_schema import RiskLevel
 
 
 def determine_risk_level(score: int) -> RiskLevel:
@@ -41,7 +41,7 @@ def determine_risk_level(score: int) -> RiskLevel:
 
     return RiskLevel.CRITICAL
 
-from app.schemas.return_schema import RiskFactor
+from backend.app.schemas.return_schema import RiskFactor
 
 
 def calculate_risk(data: ReturnCreate):
@@ -140,7 +140,7 @@ def calculate_risk(data: ReturnCreate):
 
     return score, factors
 
-from app.schemas.return_schema import Recommendation
+from backend.app.schemas.return_schema import Recommendation
 
 
 def determine_recommendation(
@@ -185,7 +185,7 @@ def determine_recommendation(
 
 from uuid import uuid4
 
-from app.schemas.return_schema import ReturnAssessment
+from backend.app.schemas.return_schema import ReturnAssessment
 
 
 def assess_return(data: ReturnCreate) -> ReturnAssessment:

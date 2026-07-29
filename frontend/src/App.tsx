@@ -1,0 +1,239 @@
+import { useState, type FormEvent } from "react"
+import {
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+  useNavigate,
+} from "react-router-dom"
+import AppLayout from "./components/layout/AppLayout"
+import DashboardPage from "./pages/DashboardPage"
+import {
+  isAuthenticated,
+  login,
+} from "./services/authService"
+
+function ProtectedRoutes() {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />
+  }
+
+  return <Outlet />
+}
+
+function LoginPage() {
+  const navigate = useNavigate()
+
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
+
+    setError("")
+    setIsSubmitting(true)
+
+    try {
+      const response = await login(email.trim(), password)
+
+      console.log("Login successful:", response)
+      console.log(
+        "Stored token:",
+        localStorage.getItem("access_token"),
+      )
+
+      navigate("/dashboard", { replace: true })
+    } catch (error) {
+      console.error("Login error:", error)
+      setError(
+        "Login failed. Check the browser console for the actual error.",
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (isAuthenticated()) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
+      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
+        <div className="text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-xl font-bold text-white">
+            R
+          </div>
+
+          <h1 className="mt-5 text-2xl font-semibold text-slate-950">
+            Sign in to ReturnIQ
+          </h1>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Access your return intelligence dashboard.
+          </p>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          className="mt-8 space-y-5"
+        >
+          <div>
+            <label
+              htmlFor="email"
+              className="text-sm font-medium text-slate-700"
+            >
+              Email address
+            </label>
+
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(event) =>
+                setEmail(event.target.value)
+              }
+              required
+              autoComplete="email"
+              className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              placeholder="you@example.com"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="password"
+              className="text-sm font-medium text-slate-700"
+            >
+              Password
+            </label>
+
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(event) =>
+                setPassword(event.target.value)
+              }
+              required
+              autoComplete="current-password"
+              className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              placeholder="Enter your password"
+            />
+          </div>
+
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSubmitting ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
+      </div>
+    </main>
+  )
+}
+
+function PlaceholderPage({
+  title,
+}: {
+  title: string
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      <h2 className="text-2xl font-semibold text-slate-950">
+        {title}
+      </h2>
+
+      <p className="mt-2 text-slate-500">
+        This module will be implemented in the next step.
+      </p>
+    </div>
+  )
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+
+      <Route element={<ProtectedRoutes />}>
+        <Route element={<AppLayout />}>
+          <Route
+            path="/dashboard"
+            element={<DashboardPage />}
+          />
+
+          <Route
+            path="/returns"
+            element={
+              <PlaceholderPage title="Return Management" />
+            }
+          />
+
+          <Route
+            path="/analytics"
+            element={
+              <PlaceholderPage title="Analytics" />
+            }
+          />
+
+          <Route
+            path="/customers"
+            element={
+              <PlaceholderPage title="Customers" />
+            }
+          />
+
+          <Route
+            path="/settings"
+            element={
+              <PlaceholderPage title="Settings" />
+            }
+          />
+        </Route>
+      </Route>
+
+      <Route
+        path="/"
+        element={
+          <Navigate
+            to={
+              isAuthenticated()
+                ? "/dashboard"
+                : "/login"
+            }
+            replace
+          />
+        }
+      />
+
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to={
+              isAuthenticated()
+                ? "/dashboard"
+                : "/login"
+            }
+            replace
+          />
+        }
+      />
+    </Routes>
+  )
+}
+
+export default App
