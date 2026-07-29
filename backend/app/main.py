@@ -7,7 +7,10 @@ from backend.app.api.routes.auth import router as auth_router
 from backend.app.api.routes.evidence import router as evidence_router
 from backend.app.api.routes.health import router as health_router
 from backend.app.api.routes.returns import router as returns_router
-from backend.app.core.storage import UPLOADS_DIR, create_storage_directories
+from backend.app.core.storage import (
+    UPLOADS_DIR,
+    create_storage_directories,
+)
 from backend.app.database.base import Base
 from backend.app.database.session import engine
 
@@ -28,10 +31,18 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Accept",
+        "Authorization",
+        "Content-Type",
+        "Origin",
+        "X-Requested-With",
+    ],
 )
 
 

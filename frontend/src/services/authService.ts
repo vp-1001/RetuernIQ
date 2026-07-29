@@ -2,6 +2,7 @@ import api from "./api"
 
 interface LoginResponse {
   access_token: string
+  refresh_token: string
   token_type: string
 }
 
@@ -23,7 +24,8 @@ export const login = async (
     formData,
     {
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Type":
+          "application/x-www-form-urlencoded",
       },
     },
   )
@@ -33,11 +35,45 @@ export const login = async (
     response.data.access_token,
   )
 
+  localStorage.setItem(
+    "refresh_token",
+    response.data.refresh_token,
+  )
+
   return response.data
+}
+
+export const refreshAccessToken = async () => {
+  const refreshToken =
+    localStorage.getItem("refresh_token")
+
+  if (!refreshToken) {
+    throw new Error("No refresh token")
+  }
+
+  const response = await api.post<LoginResponse>(
+    "/auth/refresh",
+    {
+      refresh_token: refreshToken,
+    },
+  )
+
+  localStorage.setItem(
+    "access_token",
+    response.data.access_token,
+  )
+
+  localStorage.setItem(
+    "refresh_token",
+    response.data.refresh_token,
+  )
+
+  return response.data.access_token
 }
 
 export const logout = () => {
   localStorage.removeItem("access_token")
+  localStorage.removeItem("refresh_token")
 }
 
 export const isAuthenticated = () => {

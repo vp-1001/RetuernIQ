@@ -7,11 +7,17 @@ import {
   useNavigate,
 } from "react-router-dom"
 import AppLayout from "./components/layout/AppLayout"
+import AnalyticsPage from "./pages/AnalyticsPage"
 import DashboardPage from "./pages/DashboardPage"
+import IntegrationsPage from "./pages/IntegrationsPage"
+import ReturnDetailsPage from "./pages/ReturnDetailsPage"
+import ReturnsPage from "./pages/ReturnsPage"
+import SettingsPage from "./pages/SettingsPage"
 import {
   isAuthenticated,
   login,
 } from "./services/authService"
+import EvidencePage from "./pages/EvidencePage"
 
 function ProtectedRoutes() {
   if (!isAuthenticated()) {
@@ -47,10 +53,14 @@ function LoginPage() {
       )
 
       navigate("/dashboard", { replace: true })
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error)
+      console.error("Response:", error.response)
+      console.error("Data:", error.response?.data)
+      console.error("Message:", error.message)
+      
       setError(
-        "Login failed. Check the browser console for the actual error.",
+        "Login failed. Check your email, password, and backend connection.",
       )
     } finally {
       setIsSubmitting(false)
@@ -145,24 +155,6 @@ function LoginPage() {
   )
 }
 
-function PlaceholderPage({
-  title,
-}: {
-  title: string
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-      <h2 className="text-2xl font-semibold text-slate-950">
-        {title}
-      </h2>
-
-      <p className="mt-2 text-slate-500">
-        This module will be implemented in the next step.
-      </p>
-    </div>
-  )
-}
-
 function App() {
   return (
     <Routes>
@@ -177,30 +169,37 @@ function App() {
 
           <Route
             path="/returns"
-            element={
-              <PlaceholderPage title="Return Management" />
-            }
+            element={<ReturnsPage />}
+          />
+
+          <Route
+            path="/returns/:returnId"
+            element={<ReturnDetailsPage />}
           />
 
           <Route
             path="/analytics"
-            element={
-              <PlaceholderPage title="Analytics" />
-            }
+            element={<AnalyticsPage />}
           />
 
           <Route
-            path="/customers"
-            element={
-              <PlaceholderPage title="Customers" />
-            }
+            path="/integrations"
+            element={<IntegrationsPage />}
           />
 
           <Route
             path="/settings"
-            element={
-              <PlaceholderPage title="Settings" />
-            }
+            element={<SettingsPage />}
+          />
+
+          <Route
+            path="/evidence"
+            element={<EvidencePage />}
+          />
+
+          <Route
+            path="/customers"
+            element={<Navigate to="/returns" replace />}
           />
         </Route>
       </Route>
