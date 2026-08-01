@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Boxes,
+  ClipboardCheck,
   FileImage,
   LayoutDashboard,
   RotateCcw,
@@ -8,6 +9,7 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react"
+
 import { NavLink } from "react-router-dom"
 
 type SidebarProps = {
@@ -18,7 +20,7 @@ type SidebarProps = {
 const navigation = [
   {
     name: "Dashboard",
-    path: "/",
+    path: "/dashboard",
     icon: LayoutDashboard,
   },
   {
@@ -32,6 +34,11 @@ const navigation = [
     icon: FileImage,
   },
   {
+    name: "Human Review",
+    path: "/reviews",
+    icon: ClipboardCheck,
+  },
+  {
     name: "Analytics",
     path: "/analytics",
     icon: BarChart3,
@@ -43,7 +50,10 @@ const navigation = [
   },
 ]
 
-function Sidebar({ isOpen, onClose }: SidebarProps) {
+function Sidebar({
+  isOpen,
+  onClose,
+}: SidebarProps) {
   return (
     <>
       {isOpen && (
@@ -57,7 +67,9 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex w-72 transform flex-col border-r border-slate-800 bg-slate-950 transition-transform duration-200 lg:static lg:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          isOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
         }`}
       >
         <div className="flex h-16 items-center justify-between border-b border-slate-800 px-5">
@@ -67,8 +79,13 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
 
             <div>
-              <h1 className="text-base font-semibold text-white">ReturnIQ</h1>
-              <p className="text-xs text-slate-500">Decision Intelligence</p>
+              <h1 className="text-base font-semibold text-white">
+                ReturnIQ
+              </h1>
+
+              <p className="text-xs text-slate-500">
+                Decision Intelligence
+              </p>
             </div>
           </div>
 
@@ -93,7 +110,6 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
               <NavLink
                 key={item.name}
                 to={item.path}
-                end={item.path === "/"}
                 onClick={onClose}
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
@@ -127,9 +143,13 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           </NavLink>
 
           <div className="mt-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-            <p className="text-sm font-medium text-white">ReturnIQ Platform</p>
+            <p className="text-sm font-medium text-white">
+              ReturnIQ Platform
+            </p>
+
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              AI-powered return assessment for modern commerce operations.
+              AI-powered return assessment for modern
+              commerce operations.
             </p>
           </div>
         </div>

@@ -14,6 +14,7 @@ import { useReturns } from "../hooks/useReturns"
 import { createReturn } from "../services/returnService"
 import type {
   CreateReturnPayload,
+  ProductCategory,
   ReturnAssessment,
   ReturnRequest,
 } from "../types/return"
@@ -106,15 +107,14 @@ function getReturnStatus(returnRequest: ReturnRequest) {
   }
 
   if (
-    returnRequest.recommendation === "reject_return" ||
-    returnRequest.recommendation === "reject_refund"
+    returnRequest.recommendation === "manual_inspection"
   ) {
     return "Rejected"
   }
 
   if (
-    returnRequest.recommendation === "approve_return" ||
-    returnRequest.recommendation === "approve_refund"
+    returnRequest.recommendation === "approve_refund" ||
+    returnRequest.recommendation === "instant_refund"
   ) {
     return "Approved"
   }
@@ -258,7 +258,7 @@ function DashboardPage() {
       customer_id: formData.customer_id.trim(),
       product_name: formData.product_name.trim(),
       product_category:
-        formData.product_category.trim(),
+        formData.product_category.trim() as ProductCategory,
       product_price: Number(
         formData.product_price,
       ),

@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Any
-from sqlalchemy.orm import relationship
+
 from sqlalchemy import DateTime, Integer, JSON, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.database.base import Base
 
@@ -80,8 +80,16 @@ class ReturnRequest(Base):
         onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+
     evidence = relationship(
-    "Evidence",
-    back_populates="return_request",
-    cascade="all, delete-orphan",
+        "Evidence",
+        back_populates="return_request",
+        cascade="all, delete-orphan",
     )
+
+    review_decisions = relationship(
+        "ReviewDecision",
+        back_populates="return_request",
+        cascade="all, delete-orphan",
+        order_by="ReviewDecision.created_at.desc()",
+    ) 

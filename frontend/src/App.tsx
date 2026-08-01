@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react"
+
 import {
   Navigate,
   Outlet,
@@ -6,18 +7,22 @@ import {
   Routes,
   useNavigate,
 } from "react-router-dom"
+
 import AppLayout from "./components/layout/AppLayout"
+
 import AnalyticsPage from "./pages/AnalyticsPage"
 import DashboardPage from "./pages/DashboardPage"
+import EvidencePage from "./pages/EvidencePage"
+import HumanReviewPage from "./pages/HumanReviewPage"
 import IntegrationsPage from "./pages/IntegrationsPage"
 import ReturnDetailsPage from "./pages/ReturnDetailsPage"
 import ReturnsPage from "./pages/ReturnsPage"
 import SettingsPage from "./pages/SettingsPage"
+
 import {
   isAuthenticated,
   login,
 } from "./services/authService"
-import EvidencePage from "./pages/EvidencePage"
 
 function ProtectedRoutes() {
   if (!isAuthenticated()) {
@@ -33,7 +38,8 @@ function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] =
+    useState(false)
 
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement>,
@@ -44,23 +50,14 @@ function LoginPage() {
     setIsSubmitting(true)
 
     try {
-      const response = await login(email.trim(), password)
+      await login(email.trim(), password)
 
-      console.log("Login successful:", response)
-      console.log(
-        "Stored token:",
-        localStorage.getItem("access_token"),
-      )
-
-      navigate("/dashboard", { replace: true })
-    } catch (error: any) {
-      console.error("Login error:", error)
-      console.error("Response:", error.response)
-      console.error("Data:", error.response?.data)
-      console.error("Message:", error.message)
-      
+      navigate("/dashboard", {
+        replace: true,
+      })
+    } catch {
       setError(
-        "Login failed. Check your email, password, and backend connection.",
+        "Login failed. Check your email, password and backend connection.",
       )
     } finally {
       setIsSubmitting(false)
@@ -68,7 +65,12 @@ function LoginPage() {
   }
 
   if (isAuthenticated()) {
-    return <Navigate to="/dashboard" replace />
+    return (
+      <Navigate
+        to="/dashboard"
+        replace
+      />
+    )
   }
 
   return (
@@ -147,7 +149,9 @@ function LoginPage() {
             disabled={isSubmitting}
             className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "Signing in..." : "Sign in"}
+            {isSubmitting
+              ? "Signing in..."
+              : "Sign in"}
           </button>
         </form>
       </div>
@@ -158,7 +162,10 @@ function LoginPage() {
 function App() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/login"
+        element={<LoginPage />}
+      />
 
       <Route element={<ProtectedRoutes />}>
         <Route element={<AppLayout />}>
@@ -178,6 +185,16 @@ function App() {
           />
 
           <Route
+            path="/evidence"
+            element={<EvidencePage />}
+          />
+
+          <Route
+            path="/reviews"
+            element={<HumanReviewPage />}
+          />
+
+          <Route
             path="/analytics"
             element={<AnalyticsPage />}
           />
@@ -193,13 +210,13 @@ function App() {
           />
 
           <Route
-            path="/evidence"
-            element={<EvidencePage />}
-          />
-
-          <Route
             path="/customers"
-            element={<Navigate to="/returns" replace />}
+            element={
+              <Navigate
+                to="/returns"
+                replace
+              />
+            }
           />
         </Route>
       </Route>

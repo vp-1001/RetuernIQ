@@ -20,9 +20,13 @@ from backend.app.api.dependencies import require_roles
 from backend.app.core.storage import EVIDENCE_DIR
 from backend.app.database.session import get_db
 from backend.app.models.evidence_model import Evidence
+from backend.app.models.merchant_settings_model import MerchantSettings
 from backend.app.models.return_model import ReturnRequest
 from backend.app.models.user_model import User
 from backend.app.services.image_analysis_service import analyze_image
+from backend.app.services.merchant_settings_service import (
+    get_or_create_merchant_settings,
+)
 
 
 router = APIRouter(
@@ -30,13 +34,51 @@ router = APIRouter(
     tags=["Evidence"],
 )
 
-ALLOWED_CONTENT_TYPES = {
+CONTENT_TYPE_EXTENSIONS = {
     "image/jpeg": ".jpg",
     "image/png": ".png",
     "image/webp": ".webp",
 }
 
-MAX_FILE_SIZE = 10 * 1024 * 1024
+
+FINAL_RETURN_STATUSES = {
+    "approved",
+    "rejected",
+}
+
+
+def ensure_evidence_is_editable(
+    return_request: ReturnRequest,
+) -> None:
+    normalized_status = (
+        return_request.status or "pending"
+    ).strip().lower()
+
+    if normalized_status in FINAL_RETURN_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Evidence is locked because this return has "
+                f"already been {normalized_status}."
+            ),
+        )
+
+
+def allowed_content_types(
+    settings: MerchantSettings,
+) -> dict[str, str]:
+    allowed: dict[str, str] = {}
+
+    if settings.allow_jpeg:
+        allowed["image/jpeg"] = ".jpg"
+
+    if settings.allow_png:
+        allowed["image/png"] = ".png"
+
+    if settings.allow_webp:
+        allowed["image/webp"] = ".webp"
+
+    return allowed
 
 
 def verify_image(
@@ -66,7 +108,10 @@ def verify_image(
     if image_format not in expected_formats[expected_content_type]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The file content does not match its declared image type.",
+            detail=(
+                "The file content does not match its declared "
+                "image type."
+            ),
         )
 
     if width <= 0 or height <= 0:
@@ -81,14 +126,24 @@ def verify_image(
 def serialize_evidence(
     evidence: Evidence,
     request: Request,
+    return_status: str | None = None,
 ) -> dict:
     base_url = str(request.base_url).rstrip("/")
 
     return {
         "id": evidence.id,
         "return_id": evidence.return_id,
-        "original_filename": evidence.original_filename,
+        "return_status": return_status,
+        "editable": (
+            (return_status or "pending").lower()
+            not in FINAL_RETURN_STATUSES
+        ),
+        "filename": evidence.filename,
         "stored_filename": evidence.filename,
+        "original_filename": evidence.original_filename,
+        "file_path": (
+            f"uploads/evidence/{evidence.filename}"
+        ),
         "content_type": evidence.content_type,
         "file_size": evidence.file_size,
         "image_url": (
@@ -98,6 +153,9 @@ def serialize_evidence(
         "image_height": evidence.image_height,
         "brightness_score": evidence.brightness_score,
         "blur_score": evidence.blur_score,
+        "dominant_red": evidence.dominant_red,
+        "dominant_green": evidence.dominant_green,
+        "dominant_blue": evidence.dominant_blue,
         "dominant_color": {
             "red": evidence.dominant_red,
             "green": evidence.dominant_green,
@@ -131,16 +189,34 @@ async def upload_evidence(
             detail="Return request not found.",
         )
 
+    ensure_evidence_is_editable(return_request)
+
+    settings = get_or_create_merchant_settings(
+        db=db,
+        owner_id=current_user.id,
+        owner_email=current_user.email,
+    )
+
+    allowed_types = allowed_content_types(settings)
+
     if not file.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The uploaded file must have a filename.",
         )
 
-    if file.content_type not in ALLOWED_CONTENT_TYPES:
+    if file.content_type not in allowed_types:
+        enabled_formats = ", ".join(
+            content_type.split("/")[1].upper()
+            for content_type in allowed_types
+        )
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only JPEG, PNG, and WebP images are supported.",
+            detail=(
+                "This merchant accepts only these image "
+                f"formats: {enabled_formats}."
+            ),
         )
 
     file_contents = await file.read()
@@ -151,10 +227,19 @@ async def upload_evidence(
             detail="The uploaded file is empty.",
         )
 
-    if len(file_contents) > MAX_FILE_SIZE:
+    max_file_size = (
+        settings.maximum_upload_size_mb
+        * 1024
+        * 1024
+    )
+
+    if len(file_contents) > max_file_size:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="The uploaded image exceeds the 10 MB limit.",
+            detail=(
+                "The uploaded image exceeds the merchant's "
+                f"{settings.maximum_upload_size_mb} MB limit."
+            ),
         )
 
     _, _, image_format = verify_image(
@@ -164,7 +249,7 @@ async def upload_evidence(
 
     analysis = analyze_image(file_contents)
 
-    extension = ALLOWED_CONTENT_TYPES[file.content_type]
+    extension = allowed_types[file.content_type]
     stored_filename = f"{uuid4()}{extension}"
     destination = EVIDENCE_DIR / stored_filename
 
@@ -216,7 +301,11 @@ async def upload_evidence(
     return {
         "message": "Evidence uploaded and analyzed successfully.",
         "image_format": image_format,
-        "evidence": serialize_evidence(evidence, request),
+        "evidence": serialize_evidence(
+            evidence,
+            request,
+            return_request.status,
+        ),
     }
 
 
@@ -248,7 +337,11 @@ def list_evidence_for_return(
     ).all()
 
     return [
-        serialize_evidence(evidence, request)
+        serialize_evidence(
+            evidence,
+            request,
+            return_request.status,
+        )
         for evidence in evidence_items
     ]
 
@@ -272,6 +365,19 @@ def delete_evidence(
             detail="Evidence not found.",
         )
 
+    return_request = db.get(
+        ReturnRequest,
+        evidence.return_id,
+    )
+
+    if return_request is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Return request not found.",
+        )
+
+    ensure_evidence_is_editable(return_request)
+
     image_path = Path(evidence.file_path)
 
     try:
@@ -292,7 +398,10 @@ def delete_evidence(
     except OSError:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Evidence metadata was deleted, but the image file could not be removed.",
+            detail=(
+                "Evidence metadata was deleted, but the image "
+                "file could not be removed."
+            ),
         )
 
     return {

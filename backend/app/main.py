@@ -6,6 +6,10 @@ from backend.app import models
 from backend.app.api.routes.auth import router as auth_router
 from backend.app.api.routes.evidence import router as evidence_router
 from backend.app.api.routes.health import router as health_router
+from backend.app.api.routes.merchant_settings import (
+    router as merchant_settings_router,
+)
+from backend.app.api.routes.review import router as review_router
 from backend.app.api.routes.returns import router as returns_router
 from backend.app.core.storage import (
     UPLOADS_DIR,
@@ -70,6 +74,17 @@ app.include_router(
 
 app.include_router(
     evidence_router,
+    prefix="/api/v1",
+)
+
+
+app.include_router(
+    review_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    merchant_settings_router,
     prefix="/api/v1",
 )
 

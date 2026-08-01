@@ -10,6 +10,9 @@ from backend.app.database.session import get_db
 from backend.app.models.return_model import ReturnRequest
 from backend.app.models.user_model import User
 from backend.app.schemas.return_schema import ReturnAssessment, ReturnCreate
+from backend.app.services.merchant_settings_service import (
+    get_or_create_merchant_settings,
+)
 from backend.app.services.risk_engine import assess_return
 
 
@@ -24,6 +27,7 @@ def build_assessment_response(
 ) -> ReturnAssessment:
     assessment_data = dict(return_request.assessment_payload)
     assessment_data["return_id"] = return_request.id
+    assessment_data["status"] = return_request.status
 
     return ReturnAssessment.model_validate(assessment_data)
 
@@ -55,7 +59,16 @@ def create_return(
             detail="A return request already exists for this order.",
         )
 
-    assessment = assess_return(return_data)
+    merchant_settings = get_or_create_merchant_settings(
+        db=db,
+        owner_id=current_user.id,
+        owner_email=current_user.email,
+    )
+
+    assessment = assess_return(
+        return_data,
+        merchant_settings,
+    )
     return_id = str(uuid.uuid4())
 
     request_payload = return_data.model_dump(mode="json")

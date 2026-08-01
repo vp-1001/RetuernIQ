@@ -1,20 +1,26 @@
 import api from "./api"
+
 import type {
   CreateReturnPayload,
   ReturnAssessment,
   ReturnRequest,
 } from "../types/return"
 
-export const getReturns = async (): Promise<ReturnRequest[]> => {
-  const response = await api.get<ReturnRequest[]>("/returns")
+export const getReturns = async (): Promise<
+  ReturnRequest[]
+> => {
+  const response = await api.get<ReturnRequest[]>(
+    "/returns",
+  )
+
   return response.data
 }
 
 export const getReturnById = async (
-  id: string,
+  returnId: string,
 ): Promise<ReturnRequest> => {
   const response = await api.get<ReturnRequest>(
-    `/returns/${id}`,
+    `/returns/${returnId}`,
   )
 
   return response.data

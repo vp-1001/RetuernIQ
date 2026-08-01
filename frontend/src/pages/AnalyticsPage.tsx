@@ -38,6 +38,10 @@ function normalizeText(value: string | undefined) {
   return value?.trim().toLowerCase().replaceAll("_", " ") ?? ""
 }
 
+function getReturnStatus(returnItem: ReturnRequest) {
+  return normalizeText(returnItem.status) || "pending"
+}
+
 function getRecommendationGroup(
   recommendation: string,
 ): "approve" | "review" | "reject" {
@@ -128,20 +132,22 @@ function AnalyticsPage() {
 
     const approveCount = filteredReturns.filter(
       (returnItem: ReturnRequest) =>
-        getRecommendationGroup(returnItem.recommendation) ===
-        "approve",
-    ).length
-
-    const reviewCount = filteredReturns.filter(
-      (returnItem: ReturnRequest) =>
-        getRecommendationGroup(returnItem.recommendation) ===
-        "review",
+        getReturnStatus(returnItem) === "approved",
     ).length
 
     const rejectCount = filteredReturns.filter(
       (returnItem: ReturnRequest) =>
-        getRecommendationGroup(returnItem.recommendation) ===
-        "reject",
+        getReturnStatus(returnItem) === "rejected",
+    ).length
+
+    const reviewCount = filteredReturns.filter(
+      (returnItem: ReturnRequest) =>
+        [
+          "pending",
+          "evidence requested",
+          "evidence_requested",
+          "escalated",
+        ].includes(getReturnStatus(returnItem)),
     ).length
 
     const humanReviewCount = filteredReturns.filter(
@@ -288,6 +294,7 @@ function AnalyticsPage() {
       "Risk Level",
       "Confidence",
       "Recommendation",
+      "Status",
       "Human Review Required",
       "Automatic Rejection Allowed",
       "Refund Amount",

@@ -127,6 +127,7 @@ class ReturnAssessment(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     return_id: str
+    status: str = "pending"
     risk_score: int
     risk_level: RiskLevel
     confidence: float

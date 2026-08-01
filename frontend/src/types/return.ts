@@ -1,3 +1,31 @@
+export type ProductCategory =
+  | "electronics"
+  | "fashion"
+  | "footwear"
+  | "beauty"
+  | "home"
+  | "other"
+
+export type RiskLevel =
+  | "low"
+  | "medium"
+  | "high"
+  | "critical"
+
+export type ReturnStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "evidence_requested"
+  | "escalated"
+
+export type Recommendation =
+  | "instant_refund"
+  | "approve_refund"
+  | "request_evidence"
+  | "manual_inspection"
+  | "senior_review"
+
 export interface CustomerHistory {
   total_orders: number
   total_returns: number
@@ -20,7 +48,7 @@ export interface CreateReturnPayload {
   order_id: string
   customer_id: string
   product_name: string
-  product_category: string
+  product_category: ProductCategory
   product_price: number
   return_reason: string
   days_after_delivery: number
@@ -46,18 +74,19 @@ export interface FinancialImpact {
 
 export interface ReturnAssessment {
   return_id: string
+  status: ReturnStatus
   risk_score: number
-  risk_level: string
+  risk_level: RiskLevel
   confidence: number
   factors: RiskFactor[]
-  recommendation: string
+  recommendation: Recommendation
   recommendation_reason: string
   human_review_required: boolean
   automatic_rejection_allowed: boolean
   financial_impact: FinancialImpact
 }
 
-export type ReturnRequest = ReturnAssessment
+export interface ReturnRequest extends ReturnAssessment {}
 
 export interface DashboardMetrics {
   totalReturns: number
