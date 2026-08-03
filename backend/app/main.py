@@ -4,8 +4,17 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.app import models
 from backend.app.api.routes.auth import router as auth_router
+from backend.app.api.routes.analytics import router as analytics_router
+from backend.app.api.routes.reports import router as reports_router
 from backend.app.api.routes.evidence import router as evidence_router
 from backend.app.api.routes.health import router as health_router
+from backend.app.api.routes.kpi import router as kpi_router
+from backend.app.api.routes.merchant_intelligence import (
+    router as merchant_intelligence_router,
+)
+from backend.app.api.routes.review_history import (
+    router as review_history_router,
+)
 from backend.app.api.routes.merchant_settings import (
     router as merchant_settings_router,
 )
@@ -85,6 +94,32 @@ app.include_router(
 
 app.include_router(
     merchant_settings_router,
+    prefix="/api/v1",
+)
+
+
+app.include_router(
+    analytics_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    reports_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    kpi_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    merchant_intelligence_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    review_history_router,
     prefix="/api/v1",
 )
 

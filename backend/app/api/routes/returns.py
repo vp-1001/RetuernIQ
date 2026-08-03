@@ -28,6 +28,9 @@ def build_assessment_response(
     assessment_data = dict(return_request.assessment_payload)
     assessment_data["return_id"] = return_request.id
     assessment_data["status"] = return_request.status
+    assessment_data["request_payload"] = return_request.request_payload or {}
+    assessment_data["created_at"] = return_request.created_at
+    assessment_data["updated_at"] = return_request.updated_at
 
     return ReturnAssessment.model_validate(assessment_data)
 

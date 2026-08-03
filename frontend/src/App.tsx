@@ -15,7 +15,10 @@ import DashboardPage from "./pages/DashboardPage"
 import EvidencePage from "./pages/EvidencePage"
 import HumanReviewPage from "./pages/HumanReviewPage"
 import IntegrationsPage from "./pages/IntegrationsPage"
+import MerchantIntelligencePage from "./pages/MerchantIntelligencePage"
 import ReturnDetailsPage from "./pages/ReturnDetailsPage"
+import ReviewHistoryPage from "./pages/ReviewHistoryPage"
+import ReportCenterPage from "./pages/ReportCenterPage"
 import ReturnsPage from "./pages/ReturnsPage"
 import SettingsPage from "./pages/SettingsPage"
 
@@ -197,6 +200,21 @@ function App() {
           <Route
             path="/analytics"
             element={<AnalyticsPage />}
+          />
+
+          <Route
+            path="/merchant-intelligence"
+            element={<MerchantIntelligencePage />}
+          />
+
+          <Route
+            path="/review-history"
+            element={<ReviewHistoryPage />}
+          />
+
+          <Route
+            path="/reports"
+            element={<ReportCenterPage />}
           />
 
           <Route

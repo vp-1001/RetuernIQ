@@ -72,6 +72,26 @@ export interface FinancialImpact {
   recoverable_value: number
 }
 
+export interface ReturnRequestPayload extends CreateReturnPayload {
+  customer_name?: string
+  customer_email?: string
+  customer_phone?: string
+  shipping_address?: string
+  marketplace_order_id?: string
+  shipment_id?: string
+  tracking_id?: string
+  purchase_date?: string
+  delivery_date?: string
+  payment_method?: string
+  return_type?: string
+  customer_comment?: string
+  brand?: string
+  sku?: string
+  asin?: string
+  serial_number?: string
+  variant?: string
+}
+
 export interface ReturnAssessment {
   return_id: string
   status: ReturnStatus
@@ -84,6 +104,9 @@ export interface ReturnAssessment {
   human_review_required: boolean
   automatic_rejection_allowed: boolean
   financial_impact: FinancialImpact
+  request_payload: ReturnRequestPayload
+  created_at?: string | null
+  updated_at?: string | null
 }
 
 export interface ReturnRequest extends ReturnAssessment {}

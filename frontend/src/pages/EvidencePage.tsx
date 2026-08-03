@@ -212,8 +212,7 @@ function EvidencePage() {
         </h1>
 
         <p className="mt-2 text-slate-500 dark:text-slate-400">
-          Upload and review product images linked to
-          return assessments.
+          Review evidence received from marketplace customers. Manual upload is reserved for support agents and warehouse teams.
         </p>
       </div>
 
@@ -225,7 +224,7 @@ function EvidencePage() {
               htmlFor="return-request"
               className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300"
             >
-              Select Return Request
+              Select Return for Manual Evidence Upload
             </label>
 
             {returnsLoading ? (

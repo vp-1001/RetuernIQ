@@ -40,12 +40,34 @@ function ReturnsPage() {
     const normalizedSearch = search.trim().toLowerCase()
 
     return returns.filter((item) => {
+      const payload = item.request_payload ?? {}
+      const searchableValues = [
+        item.return_id,
+        item.status,
+        item.risk_level,
+        item.recommendation,
+        payload.external_return_id,
+        payload.order_id,
+        payload.marketplace_order_id,
+        payload.customer_id,
+        payload.customer_name,
+        payload.customer_email,
+        payload.product_name,
+        payload.product_category,
+        payload.brand,
+        payload.sku,
+        payload.asin,
+        payload.return_reason,
+        payload.customer_comment,
+      ]
+
       const matchesSearch =
         !normalizedSearch ||
-        item.return_id.toLowerCase().includes(normalizedSearch) ||
-        item.recommendation
-          .toLowerCase()
-          .includes(normalizedSearch)
+        searchableValues.some((value) =>
+          String(value ?? "")
+            .toLowerCase()
+            .includes(normalizedSearch),
+        )
 
       const matchesRisk =
         riskFilter === "all" ||
@@ -77,7 +99,7 @@ function ReturnsPage() {
   ).length
 
   const approvedCount = returns.filter(
-    (item) => item.recommendation === "approve_refund",
+    (item) => item.status === "approved",
   ).length
 
   return (
@@ -151,7 +173,7 @@ function ReturnsPage() {
           </p>
 
           <p className="mt-1 text-xs text-slate-500">
-            {approvedCount} approved recommendations
+            {approvedCount} finalized approvals
           </p>
         </div>
       </div>
@@ -168,7 +190,7 @@ function ReturnsPage() {
                 onChange={(event) =>
                   setSearch(event.target.value)
                 }
-                placeholder="Search by return ID or recommendation"
+                placeholder="Search return, order, customer, product or complaint"
                 className="w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               />
             </div>
