@@ -193,3 +193,18 @@ html.dark .recharts-default-tooltip {
     transform: translateY(0);
   }
 }
+
+
+@keyframes phase8-ai-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgb(37 99 235 / 0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgb(37 99 235 / 0.08);
+  }
+}
+
+.ai-processing {
+  animation: phase8-ai-pulse 1.6s ease-in-out infinite;
+}

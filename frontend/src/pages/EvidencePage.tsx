@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   AlertCircle,
   Eye,
@@ -35,6 +36,7 @@ function formatLabel(value: string): string {
 }
 
 function EvidencePage() {
+  const navigate = useNavigate()
   const [selectedReturnId, setSelectedReturnId] =
     useState("")
 
@@ -401,16 +403,15 @@ function EvidencePage() {
           </h2>
 
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            OCR, damage analysis, barcode and serial
-            verification will be added in later phases.
+            Detect product mismatches, duplicate images, OCR text and evidence-based fraud signals.
           </p>
 
           <button
             type="button"
-            disabled
-            className="mt-5 cursor-not-allowed rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-600"
+            onClick={() => navigate("/ai-evidence")}
+            className="mt-5 rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
           >
-            Coming Soon
+            Open AI Verification
           </button>
         </div>
       </div>

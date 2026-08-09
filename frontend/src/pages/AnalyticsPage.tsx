@@ -28,6 +28,7 @@ import {
 import { useAnalyticsDashboard } from "../hooks/useAnalyticsDashboard"
 import { downloadReport } from "../services/analyticsService"
 import { useToast } from "../contexts/ToastContext"
+import AIAnalyticsStrip from "../components/analytics/AIAnalyticsStrip"
 
 const palette = [
   "#2563eb",
@@ -207,6 +208,8 @@ function AnalyticsPage() {
           </button>
         </div>
       </div>
+
+      <AIAnalyticsStrip />
 
       <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-4 dark:border-slate-800 dark:bg-slate-900">
         <label>
