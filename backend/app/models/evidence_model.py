@@ -100,3 +100,10 @@ class Evidence(Base):
         "ReturnRequest",
         back_populates="evidence",
     )
+
+    ai_analysis = relationship(
+        "EvidenceAIAnalysis",
+        back_populates="evidence",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
