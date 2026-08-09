@@ -92,6 +92,15 @@ export interface ReturnRequestPayload extends CreateReturnPayload {
   variant?: string
 }
 
+export interface EvidenceAISummaryPayload {
+  analyzed_count: number
+  mismatch_count: number
+  duplicate_count: number
+  average_similarity: number
+  risk_adjustment: number
+  fraud_signals: string[]
+}
+
 export interface ReturnAssessment {
   return_id: string
   status: ReturnStatus
