@@ -1,36 +1,46 @@
+﻿# ReturnIQ
 
-Automated update (1/6) - 2026-08-09T16:29:57.2404041+05:30
+ReturnIQ is a full-stack returns intelligence application for managing return evidence, AI-based review support, merchant analytics, and verification workflows.
 
-Automated update (2/6) - 2026-08-09T16:29:57.4770046+05:30
+## Project Structure
 
-Automated update (3/6) - 2026-08-09T16:29:57.6621125+05:30
+- `backend/` - Python FastAPI backend with database models, API routes, services, and authentication.
+- `frontend/` - TypeScript React + Vite frontend with Tailwind CSS and AI evidence workflows.
+- `backend/uploads/` - Uploaded evidence storage.
 
-Automated update (4/6) - 2026-08-09T16:29:57.8590051+05:30
+## Getting Started
 
-Automated update (5/6) - 2026-08-09T16:29:58.0506392+05:30
+### Backend
+1. Create and activate a Python virtual environment in `backend/`.
+2. Install dependencies:
+   ```powershell
+   cd backend
+   python -m pip install -r requirements.txt
+   ```
+3. Run the API server:
+   ```powershell
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   ```
 
-Automated update (6/6) - 2026-08-09T16:29:58.2462920+05:30
+### Frontend
+1. Install dependencies:
+   ```powershell
+   cd frontend
+   npm install
+   ```
+2. Run the development server:
+   ```powershell
+   npm run dev
+   ```
 
-Automated update (1/6) - 2026-08-09T16:30:12.3954792+05:30
+## Features
 
-Automated update (2/6) - 2026-08-09T16:30:12.5910692+05:30
+- Evidence review management
+- AI-powered evidence analysis and verification
+- Merchant analytics and reporting
+- User authentication and merchant settings
 
-Automated update (3/6) - 2026-08-09T16:30:12.7842694+05:30
+## Notes
 
-Automated update (4/6) - 2026-08-09T16:30:12.9683256+05:30
-
-Automated update (5/6) - 2026-08-09T16:30:13.1813699+05:30
-
-Automated update (6/6) - 2026-08-09T16:30:13.3950966+05:30
-
-Automated update (1/6) - 2026-08-09T16:30:20.6175909+05:30
-
-Automated update (2/6) - 2026-08-09T16:30:20.8316413+05:30
-
-Automated update (3/6) - 2026-08-09T16:30:21.0296997+05:30
-
-Automated update (4/6) - 2026-08-09T16:30:21.2152755+05:30
-
-Automated update (5/6) - 2026-08-09T16:30:21.3964414+05:30
-
-Automated update (6/6) - 2026-08-09T16:30:21.5803929+05:30
+- Keep `backend/.venv` out of source control.
+- Configure environment variables and database settings in the backend before starting the API.
