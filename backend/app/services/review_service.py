@@ -400,6 +400,41 @@ def create_review_decision(
         )
 
     if decision_data.action == ReviewAction.APPROVE:
+        assessment_payload = (
+            return_request.assessment_payload
+            or {}
+        )
+        evidence_ai = assessment_payload.get(
+            "evidence_ai",
+            {},
+        )
+        severe_ai_block = bool(
+            evidence_ai.get(
+                "severe_approval_block",
+                False,
+            )
+        )
+
+        if severe_ai_block:
+            if not settings.manual_override_enabled:
+                raise ValueError(
+                    "Approval is blocked because AI evidence "
+                    "verification found severe mismatch, "
+                    "duplicate-image or identifier signals."
+                )
+
+            if not decision_data.remarks:
+                raise ValueError(
+                    "Reviewer remarks are required to override "
+                    "a severe AI evidence-verification block."
+                )
+
+            if len(decision_data.remarks.strip()) < 15:
+                raise ValueError(
+                    "Provide a detailed override reason of at "
+                    "least 15 characters."
+                )
+
         request_payload = return_request.request_payload or {}
         financial_data = request_payload.get(
             "financial_data",

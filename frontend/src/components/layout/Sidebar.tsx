@@ -8,6 +8,7 @@ import {
   FileImage,
   LayoutDashboard,
   RotateCcw,
+  ScanSearch,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -35,6 +36,11 @@ const workspaceNavigation = [
     name: "Evidence",
     path: "/evidence",
     icon: FileImage,
+  },
+  {
+    name: "AI Evidence",
+    path: "/ai-evidence",
+    icon: ScanSearch,
   },
   {
     name: "Human Review",

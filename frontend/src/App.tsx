@@ -13,6 +13,7 @@ import AppLayout from "./components/layout/AppLayout"
 import AnalyticsPage from "./pages/AnalyticsPage"
 import DashboardPage from "./pages/DashboardPage"
 import EvidencePage from "./pages/EvidencePage"
+import AIEvidencePage from "./pages/AIEvidencePage"
 import HumanReviewPage from "./pages/HumanReviewPage"
 import IntegrationsPage from "./pages/IntegrationsPage"
 import MerchantIntelligencePage from "./pages/MerchantIntelligencePage"
@@ -190,6 +191,11 @@ function App() {
           <Route
             path="/evidence"
             element={<EvidencePage />}
+          />
+
+          <Route
+            path="/ai-evidence"
+            element={<AIEvidencePage />}
           />
 
           <Route
