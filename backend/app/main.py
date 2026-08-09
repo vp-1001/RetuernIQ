@@ -7,6 +7,7 @@ from backend.app.api.routes.auth import router as auth_router
 from backend.app.api.routes.analytics import router as analytics_router
 from backend.app.api.routes.reports import router as reports_router
 from backend.app.api.routes.evidence import router as evidence_router
+from backend.app.api.routes.evidence_ai import router as evidence_ai_router
 from backend.app.api.routes.health import router as health_router
 from backend.app.api.routes.kpi import router as kpi_router
 from backend.app.api.routes.merchant_intelligence import (
@@ -83,6 +84,11 @@ app.include_router(
 
 app.include_router(
     evidence_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    evidence_ai_router,
     prefix="/api/v1",
 )
 
