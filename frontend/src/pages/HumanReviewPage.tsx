@@ -24,6 +24,8 @@ import {
 
 import { getApiErrorMessage } from "../lib/getApiErrorMessage"
 import { useToast } from "../contexts/ToastContext"
+import { useReturnEvidenceAI } from "../hooks/useEvidenceAI"
+import AIReviewBanner from "../components/evidence/AIReviewBanner"
 
 import {
   useReviewDetail,
@@ -428,6 +430,9 @@ function HumanReviewPage() {
   const decisionMutation =
     useSubmitReviewDecision(selectedReturnId)
 
+  const { data: aiSummary } =
+    useReturnEvidenceAI(selectedReturnId)
+
   const handleSearch = (
     event: FormEvent<HTMLFormElement>,
   ) => {
@@ -785,6 +790,12 @@ function HumanReviewPage() {
                   </span>
                 </div>
               </div>
+
+              {aiSummary && (
+                <div className="mt-6">
+                  <AIReviewBanner summary={aiSummary}/>
+                </div>
+              )}
 
               <div className="mt-6 grid gap-4 md:grid-cols-3">
                 <div className="rounded-xl bg-slate-50 p-4">

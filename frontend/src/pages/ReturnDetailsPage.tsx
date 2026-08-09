@@ -1,8 +1,12 @@
 import {
-  AlertTriangle, ArrowLeft, BadgeIndianRupee, CalendarDays, CheckCircle2, Clock3, CreditCard, MapPin, Package, ShieldAlert, Sparkles, Truck, UserRound,
+  AlertTriangle, ArrowLeft, BadgeIndianRupee, CalendarDays, CheckCircle2, Clock3, CreditCard, Package, ShieldAlert, Sparkles, Truck, UserRound,
 } from "lucide-react"
 import { useNavigate, useParams } from "react-router-dom"
 import { useReturn } from "../hooks/useReturn"
+import { useReturnEvidenceAI } from "../hooks/useEvidenceAI"
+import AIReviewBanner from "../components/evidence/AIReviewBanner"
+import AIVerificationDetails from "../components/evidence/AIVerificationDetails"
+import AITimeline from "../components/evidence/AITimeline"
 
 function money(value: number) { return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value) }
 function label(value?: string | null) { return value ? value.replaceAll("_", " ").replace(/\b\w/g, c => c.toUpperCase()) : "Not provided" }
@@ -11,6 +15,7 @@ function Detail({ title, value }: { title: string; value: React.ReactNode }) { r
 
 function ReturnDetailsPage() {
   const navigate = useNavigate(); const { returnId } = useParams(); const { data: item, isLoading, isError, refetch } = useReturn(returnId)
+  const { data: aiSummary } = useReturnEvidenceAI(returnId ?? "")
   if (isLoading) return <div className="h-96 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800"/>
   if (isError || !item) return <div className="rounded-2xl border border-red-200 bg-white p-10 text-center dark:border-red-900 dark:bg-slate-900"><AlertTriangle className="mx-auto h-12 w-12 text-red-500"/><h1 className="mt-4 text-xl font-semibold dark:text-white">Return details could not be loaded</h1><button onClick={() => refetch()} className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-white">Retry</button></div>
   const p = item.request_payload ?? {}
@@ -28,6 +33,16 @@ function ReturnDetailsPage() {
       <article className="rounded-2xl border bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"><div className="flex items-center gap-3"><Truck className="h-5 w-5 text-blue-600"/><h2 className="text-lg font-bold dark:text-white">Shipment and payment</h2></div><div className="mt-5 grid gap-5 sm:grid-cols-2"><Detail title="Shipment ID" value={p.shipment_id}/><Detail title="Tracking ID" value={p.tracking_id}/><Detail title="Purchase date" value={date(p.purchase_date)}/><Detail title="Delivery date" value={date(p.delivery_date)}/><Detail title="Days after delivery" value={p.days_after_delivery}/><Detail title="Payment method" value={p.payment_method}/></div></article>
       <article className="rounded-2xl border bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"><div className="flex items-center gap-3"><CreditCard className="h-5 w-5 text-blue-600"/><h2 className="text-lg font-bold dark:text-white">Return and refund</h2></div><div className="mt-5 grid gap-5 sm:grid-cols-2"><Detail title="Return type" value={label(p.return_type)}/><Detail title="Return reason" value={p.return_reason}/><Detail title="Customer comment" value={p.customer_comment || p.return_reason}/><Detail title="Refund amount" value={money(item.financial_impact.refund_amount)}/><Detail title="Estimated loss" value={money(item.financial_impact.estimated_loss)}/><Detail title="Recoverable value" value={money(item.financial_impact.recoverable_value)}/></div></article>
     </section>
+    {aiSummary && aiSummary.analyzed_count > 0 && (
+      <section className="space-y-5">
+        <AIReviewBanner summary={aiSummary}/>
+        <AIVerificationDetails
+          verification={aiSummary.analyses[0]?.verification ?? aiSummary.analyses[0]?.raw_predictions?.verification}
+          consistency={aiSummary.multi_image_consistency}
+        />
+        <AITimeline items={aiSummary.timeline}/>
+      </section>
+    )}
     <section className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
       <article className="rounded-2xl border bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"><h2 className="text-lg font-bold dark:text-white">AI assessment</h2><div className="mt-5 space-y-5"><Detail title="Recommendation" value={label(item.recommendation)}/><Detail title="Explanation" value={item.recommendation_reason}/><div><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Risk factors</p><div className="mt-3 space-y-3">{item.factors.map((f,i)=><div key={`${f.name}-${i}`} className="rounded-xl bg-slate-50 p-4 dark:bg-slate-950"><div className="flex justify-between gap-3"><p className="font-semibold dark:text-white">{label(f.name)}</p><span className="text-sm font-bold text-red-600">{f.impact>0?'+':''}{f.impact}</span></div><p className="mt-1 text-sm text-slate-500">{f.explanation}</p></div>)}</div></div></div></article>
       <article className="rounded-2xl border bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"><h2 className="text-lg font-bold dark:text-white">Decision timeline</h2><div className="mt-5 space-y-5"><div className="flex gap-3"><CalendarDays className="h-5 w-5 text-blue-600"/><div><p className="font-semibold dark:text-white">Return submitted</p><p className="text-sm text-slate-500">{date(item.created_at)}</p></div></div><div className="flex gap-3"><Sparkles className="h-5 w-5 text-emerald-600"/><div><p className="font-semibold dark:text-white">AI assessment completed</p><p className="text-sm text-slate-500">Recommendation: {label(item.recommendation)}</p></div></div><div className="flex gap-3"><Clock3 className="h-5 w-5 text-amber-500"/><div><p className="font-semibold dark:text-white">Current status</p><p className="text-sm text-slate-500">{label(item.status)}</p></div></div></div></article>
